@@ -51,20 +51,22 @@ function TypewriterText({ text, speed = 18 }) {
 }
 
 function MermaidDiagram({ chart }) {
-  const ref = useRef(null);
   const [svg, setSvg] = useState("");
   const [err, setErr] = useState(false);
 
   useEffect(() => {
-    if (!chart || !ref.current) return;
-    const id = "mermaid-" + Date.now();
-    mermaid
-      .render(id, chart)
-      .then(({ svg: s }) => {
+    if (!chart) return;
+    const id = "mermaid-" + Math.random().toString(36).slice(2, 9);
+    const cleanChart = chart.replace(/\\n/g, "\n").trim();
+    setTimeout(async () => {
+      try {
+        const { svg: s } = await mermaid.render(id, cleanChart);
         setSvg(s);
         setErr(false);
-      })
-      .catch(() => setErr(true));
+      } catch (e) {
+        setErr(true);
+      }
+    }, 200);
   }, [chart]);
 
   if (err)
@@ -77,7 +79,6 @@ function MermaidDiagram({ chart }) {
   if (!svg) return null;
   return (
     <div
-      ref={ref}
       className="mermaid-wrap"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
@@ -138,8 +139,13 @@ export default function App() {
     }, 900);
 
     try {
-      const res = await axios.post("http://localhost:8000/generate", {
+      const res = await axios.post("https://rational-nico-subliminal.ngrok-free.app/generate", {
         requirement: requirement.trim(),
+      }, {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+          "Content-Type": "application/json"
+        }
       });
       setResult(res.data);
       setTimeout(() => {
@@ -163,28 +169,15 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Background grid */}
       <div className="bg-grid" />
       <div className="bg-glow" />
 
-      {/* Header */}
       <header className="header">
         <div className="logo">
           <div className="logo-icon">
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <polygon
-                points="14,2 26,8 26,20 14,26 2,20 2,8"
-                stroke="#00D4FF"
-                strokeWidth="1.5"
-                fill="none"
-              />
-              <polygon
-                points="14,7 21,11 21,18 14,22 7,18 7,11"
-                fill="#00D4FF"
-                opacity="0.15"
-                stroke="#00D4FF"
-                strokeWidth="1"
-              />
+              <polygon points="14,2 26,8 26,20 14,26 2,20 2,8" stroke="#00D4FF" strokeWidth="1.5" fill="none" />
+              <polygon points="14,7 21,11 21,18 14,22 7,18 7,11" fill="#00D4FF" opacity="0.15" stroke="#00D4FF" strokeWidth="1" />
               <circle cx="14" cy="14" r="3" fill="#00D4FF" />
             </svg>
           </div>
@@ -201,7 +194,6 @@ export default function App() {
       </header>
 
       <main className="main">
-        {/* Hero */}
         <section className="hero">
           <div className="hero-eyebrow">AWS Architecture Generator</div>
           <h1 className="hero-title">
@@ -215,7 +207,6 @@ export default function App() {
           </p>
         </section>
 
-        {/* Input */}
         <section className="input-section">
           <div className="input-card">
             <div className="input-header">
@@ -262,7 +253,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* Loading state */}
         {loading && (
           <section className="loading-section">
             <div className="loading-card">
@@ -285,7 +275,6 @@ export default function App() {
           </section>
         )}
 
-        {/* Error */}
         {error && (
           <div className="error-bar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -296,10 +285,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Results */}
         {result && (
           <div className="results" ref={resultRef}>
-            {/* Architecture header */}
             <div className="result-hero">
               <div className="result-eyebrow">Architecture Generated</div>
               <h2 className="arch-name">
@@ -309,7 +296,6 @@ export default function App() {
             </div>
 
             <div className="results-grid">
-              {/* AWS Services */}
               <section className="panel services-panel">
                 <div className="panel-header">
                   <div className="panel-icon aws">
@@ -327,7 +313,6 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Diagram */}
               <section className="panel diagram-panel">
                 <div className="panel-header">
                   <div className="panel-icon diag">
@@ -349,7 +334,6 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Implementation Steps */}
               <section className="panel steps-panel">
                 <div className="panel-header">
                   <div className="panel-icon steps">
@@ -370,7 +354,6 @@ export default function App() {
                 </ol>
               </section>
 
-              {/* Alternatives */}
               <section className="panel alt-panel">
                 <div className="panel-header">
                   <div className="panel-icon alt">
@@ -387,7 +370,7 @@ export default function App() {
                   {result.alternative_architectures?.map((alt, i) => (
                     <div key={i} className="alt-item" style={{ animationDelay: `${i * 80}ms` }}>
                       <span className="alt-num">ALT {String.fromCharCode(65 + i)}</span>
-                      <span className="alt-text">{alt}</span>
+                      <span className="alt-text">{typeof alt === "string" ? alt : JSON.stringify(alt)}</span>
                     </div>
                   ))}
                 </div>
@@ -407,3 +390,4 @@ export default function App() {
     </div>
   );
 }
+
